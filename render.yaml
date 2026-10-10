@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: bootscoot-api
-    runtime: docker
-    dockerfilePath: ./server/Dockerfile
-    plan: free
-    healthCheckPath: /api/health
