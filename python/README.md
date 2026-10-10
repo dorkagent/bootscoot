@@ -86,6 +86,13 @@ Missing fields are `None` rather than raising. Requests are spaced ~1s
 apart (`delay_between_requests`) to stay polite; don't hammer the site in
 a tight loop.
 
+Notes on the data: `level` comes back in the site's own language, so
+French sheets report values like `Débutant` instead of `Beginner` —
+filter on it accordingly. The `base_url` variable sets the network
+target; the result parser itself matches this site's markup
+(`div.listitem`), so pointing it elsewhere only works for sites serving
+the same layout.
+
 ### CLI
 
 ```

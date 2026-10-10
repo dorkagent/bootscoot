@@ -11,7 +11,11 @@ const results = await search("Bailando", { maxResults: 10 });
 ```
 
 Options: `baseUrl` (target site), `maxResults` (default 20, follows
-pagination), `level`, `wall`, `lang`, `order`, `delayMs`.
+pagination), `maxPages` (default 10, safety cap), `level`, `wall`,
+`lang`, `order`, `delayMs`.
+
+Note: `level` comes back in the site's own language (e.g. `Débutant` on
+French sheets).
 
 CLI:
 

@@ -15,7 +15,7 @@ def main() -> None:
         with CopperKnobClient() as client:
             results = client.search(query, max_results=10)
     except CloudflareChallengeError as exc:
-        print(f"Cloudflare challenge needs one manual solve:\n{exc}")
+        print(f"Blocked by a bot challenge:\n{exc}")
         sys.exit(2)
     print(json.dumps(results, indent=2, ensure_ascii=False))
 

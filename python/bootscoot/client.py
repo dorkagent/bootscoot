@@ -160,8 +160,14 @@ class CopperKnobClient:
         return results
 
 
+_CLIENT_KWARGS = (
+    "base_url", "user_agent", "timeout", "proxy", "verify_tls",
+    "delay_between_requests",
+)
+
+
 def search(query: str, **kwargs) -> List[Dict]:
     """One-shot convenience wrapper: search and return results."""
-    base_url = kwargs.pop("base_url", None)
-    with CopperKnobClient(base_url=base_url) as client:
+    client_kwargs = {k: kwargs.pop(k) for k in _CLIENT_KWARGS if k in kwargs}
+    with CopperKnobClient(**client_kwargs) as client:
         return client.search(query, **kwargs)

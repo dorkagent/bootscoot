@@ -6,7 +6,8 @@ $script:UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 
 function ConvertFrom-HtmlText {
     param([string]$Html)
-    $t = $Html -replace '<[^>]+>', ' '
+    $t = $Html -replace '</?mark>', '' # unwrap highlights: "<mark>Cowboy</mark>s" stays "Cowboys"
+    $t = $t -replace '<[^>]+>', ' '
     $t = $t -replace '&nbsp;', ' '
     $t = $t -replace '&lt;', '<'
     $t = $t -replace '&gt;', '>'
@@ -30,7 +31,9 @@ function Search-Stepsheets {
         [string]$Level = "",
         [string]$Wall = "",
         [string]$Lang = "",
+        [string]$Order = "Date",
         [int]$MaxResults = 20,
+        [int]$MaxPages = 10,
         [int]$DelaySeconds = 1,
         [switch]$AsJson
     )
@@ -38,9 +41,11 @@ function Search-Stepsheets {
     $base = $BaseUrl.TrimEnd("/")
     $results = @()
     $recnum = 0
+    $page = 0
 
     do {
-        $qs = "Order=Date" +
+        $page++
+        $qs = "Order=$([uri]::EscapeDataString($Order))" +
               "&Lang=$([uri]::EscapeDataString($Lang))" +
               "&Level=$([uri]::EscapeDataString($Level))" +
               "&Wall=$([uri]::EscapeDataString($Wall))" +
@@ -57,6 +62,8 @@ function Search-Stepsheets {
             $block = $b.Groups[1].Value
             if ($block -match '<a href="([^"]+)"') { $href = $Matches[1] } else { continue }
             if ($href -match '/stepsheets/([A-Za-z0-9]+)/') { $id = $Matches[1] } else { continue }
+            $url = $href
+            if ($url -notmatch '^https?://') { $url = $base + '/' + $url.TrimStart('/') }
 
             $title = $null
             if ($block -match '<span class="listTitleColor1">([\s\S]*?)</span>') {
@@ -74,11 +81,11 @@ function Search-Stepsheets {
             if ($block -match '<p class="listIcons">([\s\S]*?)</p>') {
                 $info = ConvertFrom-HtmlText $Matches[1]
                 if ($info -match '(\d+)\s*Count') { $count = [int]$Matches[1] }
-                if ($info -match '(\d+)\s*Wall')  { $walls = [int]$Matches[1] }
+                if ($info -match '(\d+|-)\s*Wall' -and $Matches[1] -match '^\d+$') { $walls = [int]$Matches[1] }
                 if ($info -match 'Music:\s*(.+)$') {
                     $music = $Matches[1].Trim()
                     $before = $info.Substring(0, $info.IndexOf($Matches[0]))
-                    $level = (($before -replace '\d+\s*Count', '') -replace '\d+\s*Wall', '').Trim(' -')
+                    $level = (($before -replace '\d+\s*Count', '') -replace '(\d+|-)\s*Wall', '').Trim(' -')
                     if (-not $level) { $level = $null }
                 }
             }
@@ -86,7 +93,7 @@ function Search-Stepsheets {
             $results += [pscustomobject]@{
                 Id           = $id
                 Title        = $title
-                Url          = $href
+                Url          = $url
                 Choreographer = $choreographer
                 Date         = $date
                 Count        = $count
@@ -101,7 +108,7 @@ function Search-Stepsheets {
         if ($results.Count -lt $MaxResults -and $blocks.Count -gt 0) {
             Start-Sleep -Seconds $DelaySeconds
         }
-    } while ($results.Count -lt $MaxResults -and $blocks.Count -gt 0)
+    } while ($page -lt $MaxPages -and $results.Count -lt $MaxResults -and $blocks.Count -gt 0)
 
     if ($AsJson) { return ($results | ConvertTo-Json -Depth 3) }
     return $results

@@ -6,17 +6,49 @@ const DEFAULT_BASE_URL = "https://www.copperknob.co.uk";
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
+const CHALLENGE_MARKERS = [
+  "challenges.cloudflare.com",
+  "just a moment",
+  "verify you are human",
+];
+
+const NAMED_ENTITIES = {
+  eacute: "é", egrave: "è", ecirc: "ê", euml: "ë",
+  aacute: "á", agrave: "à", acirc: "â", auml: "ä",
+  iacute: "í", igrave: "ì", icirc: "î", iuml: "ï",
+  oacute: "ó", ograve: "ò", ocirc: "ô", ouml: "ö",
+  uacute: "ú", ugrave: "ù", ucirc: "û", uuml: "ü",
+  ccedil: "ç", ntilde: "ñ", szlig: "ß",
+  hellip: "…", mdash: "—", ndash: "–",
+  laquo: "«", raquo: "»", copy: "©", reg: "®",
+};
+
 const stripTags = (s) =>
   (s || "")
+    .replace(/<\/?mark>/gi, "") // unwrap highlights first: "<mark>Cowboy</mark>s" stays "Cowboys"
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&([a-zA-Z]+);/g, (_, n) => {
+      const v = NAMED_ENTITIES[n.toLowerCase()];
+      if (!v) return `&${n};`;
+      return n[0] === n[0].toUpperCase() ? v.toUpperCase() : v;
+    })
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replace(/&#39;|&apos;/g, "'")
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
+
+function looksChallenged(html) {
+  const low = html.toLowerCase();
+  return (
+    CHALLENGE_MARKERS.some((m) => low.includes(m)) && !low.includes("listitem")
+  );
+}
 
 function parseResults(html, baseUrl) {
   const results = [];
@@ -48,8 +80,8 @@ function parseResults(html, baseUrl) {
       const info = stripTags(infoM[1]);
       const cM = info.match(/(\d+)\s*Count/i);
       if (cM) count = parseInt(cM[1], 10);
-      const wM = info.match(/(\d+)\s*Wall/i);
-      if (wM) walls = parseInt(wM[1], 10);
+      const wM = info.match(/(\d+|-)\s*Wall/i);
+      if (wM && /^\d+$/.test(wM[1])) walls = parseInt(wM[1], 10);
       const muM = info.match(/Music:\s*(.+)$/i);
       if (muM) {
         music = muM[1].trim() || null;
@@ -57,7 +89,7 @@ function parseResults(html, baseUrl) {
           info
             .slice(0, muM.index)
             .replace(/(\d+)\s*Count/gi, "")
-            .replace(/(\d+)\s*Wall/gi, "")
+            .replace(/(\d+|-)\s*Wall/gi, "")
             .replace(/^[\s-]+|[\s-]+$/g, "") || null;
       }
     }
@@ -79,7 +111,9 @@ function parseResults(html, baseUrl) {
 
 async function search(query, opts = {}) {
   const baseUrl = (opts.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const maxResults = opts.maxResults ?? 20;
+  let maxResults = opts.maxResults ?? 20;
+  if (!Number.isFinite(maxResults) || maxResults < 1) maxResults = 20;
+  const maxPages = opts.maxPages ?? 10;
   const delayMs = opts.delayMs ?? 1000;
   const q = {
     Order: opts.order || "Date",
@@ -91,7 +125,7 @@ async function search(query, opts = {}) {
 
   const results = [];
   let recnum = 0;
-  for (;;) {
+  for (let page = 0; page < maxPages; page++) {
     const params = new URLSearchParams(q);
     if (recnum > 0) params.set("recnum", String(recnum));
     const url = `${baseUrl}/search?${params}`;
@@ -100,6 +134,12 @@ async function search(query, opts = {}) {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     const html = await res.text();
+    if (looksChallenged(html)) {
+      throw new Error(
+        "CloudflareChallenge: the site is challenging requests. Wait a while and retry; " +
+          "if it persists, the site's bot policy changed."
+      );
+    }
     const batch = parseResults(html, baseUrl);
     if (batch.length === 0) break;
     results.push(...batch);
@@ -110,4 +150,4 @@ async function search(query, opts = {}) {
   return results.slice(0, maxResults);
 }
 
-module.exports = { search, parseResults, DEFAULT_BASE_URL };
+module.exports = { search, parseResults, looksChallenged, DEFAULT_BASE_URL };

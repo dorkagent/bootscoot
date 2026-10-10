@@ -11,7 +11,11 @@ PAGE1 = """
 <div class="listitem"><div class="listTitle">
 <a href="/stepsheets/AAA111/dance-one"><span class="listTitleColor1">Dance One</span></a>
 <span class="listTitleColor2">Jane Doe (USA) - October 2026</span></div>
-<div class="listInfo"><p>32 Count 4 Wall Beginner Music: Song One - Artist</p></div></div>
+<div class="listInfo"><p class="listIcons">32 Count 4 Wall Beginner Music: Song One - Artist</p></div></div>
+<div class="listitem"><div class="listTitle">
+<a href="/stepsheets/CCC333/partner-mix"><span class="listTitleColor1"><mark>Cowboy</mark>s Mix</span></a>
+<span class="listTitleColor2">Unknown</span></div>
+<div class="listInfo"><p class="listIcons">40 Count - Wall Partenaire Music: Song Three - Artist</p></div></div>
 <a href="/search?Search=Cowboy&recnum=20">Next</a>
 </body></html>
 """
@@ -20,7 +24,7 @@ PAGE2 = """
 <div class="listitem"><div class="listTitle">
 <a href="/stepsheets/BBB222/dance-two"><span class="listTitleColor1">Dance Two</span></a>
 <span class="listTitleColor2">John Doe (UK) - September 2026</span></div>
-<div class="listInfo"><p>64 Count 2 Wall Improver Music: Song Two - Artist</p></div></div>
+<div class="listInfo"><p class="listIcons">64 Count 2 Wall Improver Music: Song Two - Artist</p></div></div>
 </body></html>
 """
 
@@ -54,13 +58,20 @@ def test_search_flow():
     client = C.CopperKnobClient()
     client._session = FakeSession()
     try:
-        res = client.search("Cowboy", max_results=2)
-        assert len(res) == 2, res
+        res = client.search("Cowboy", max_results=3)
+        assert len(res) == 3, res
         assert res[0]["title"] == "Dance One", res[0]
         assert res[0]["id"] == "AAA111"
         assert res[0]["level"] == "Beginner"
         assert res[0]["music"] == "Song One - Artist"
-        assert res[1]["title"] == "Dance Two"
+        # mid-word <mark> stays joined; dateless choreographer kept;
+        # "- Wall" leaves walls=None and doesn't leak into level
+        assert res[1]["title"] == "Cowboys Mix", res[1]
+        assert res[1]["choreographer"] == "Unknown", res[1]
+        assert res[1]["date"] is None, res[1]
+        assert res[1]["walls"] is None, res[1]
+        assert res[1]["level"] == "Partenaire", res[1]
+        assert res[2]["title"] == "Dance Two"
         assert "Search=Cowboy" in client._session.urls[0]
         assert "recnum=20" in client._session.urls[1], client._session.urls
         # max_results smaller than a page -> single fetch

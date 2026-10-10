@@ -27,7 +27,9 @@ from bs4 import BeautifulSoup
 
 _STEPSHEET_RE = re.compile(r"/stepsheets/([A-Za-z0-9]+)/[^/?#]+", re.I)
 _COUNT_RE = re.compile(r"(\d+)\s*Count", re.I)
-_WALL_RE = re.compile(r"(\d+)\s*Wall", re.I)
+# Partner dances render "- Wall" (no number); strip it from level text too.
+_WALL_RE = re.compile(r"(\d+|-)\s*Wall", re.I)
+_MARK_RE = re.compile(r"</?mark>", re.I)
 _CHOREO_RE = re.compile(
     r"^(?P<choreographer>.+?)\s*-\s*(?P<date>(?:\d{1,2}\s+\w+\s+\d{4})|(?:\w+\s+\d{4}))\s*$"
 )
@@ -44,6 +46,9 @@ def parse_search_results(html: str, base_url: str = "https://www.copperknob.co.u
     ``date``, ``count``, ``walls``, ``level``, ``music``. Missing fields
     are ``None``.
     """
+    # Unwrap search-term highlights (<mark>Cowboy</mark>s) with no separator,
+    # otherwise "Cowboys" becomes "Cowboy s".
+    html = _MARK_RE.sub("", html)
     soup = BeautifulSoup(html, "html.parser")
     results: List[Dict] = []
 
@@ -61,10 +66,14 @@ def parse_search_results(html: str, base_url: str = "https://www.copperknob.co.u
         choreo_el = item.select_one("span.listTitleColor2")
         choreographer = date = None
         if choreo_el:
-            cm = _CHOREO_RE.match(_clean(choreo_el.get_text(" ")))
+            choreo_text = _clean(choreo_el.get_text(" "))
+            cm = _CHOREO_RE.match(choreo_text)
             if cm:
                 choreographer = cm.group("choreographer").strip()
                 date = cm.group("date").strip()
+            elif choreo_text:
+                # No " - Month Year" suffix (e.g. "Unknown"): keep the name.
+                choreographer = choreo_text
 
         info_el = item.select_one("div.listInfo")
         info_text = _clean(info_el.get_text(" ") if info_el else "")
@@ -73,7 +82,7 @@ def parse_search_results(html: str, base_url: str = "https://www.copperknob.co.u
         if cm:
             count = int(cm.group(1))
         wm = _WALL_RE.search(info_text)
-        if wm:
+        if wm and wm.group(1).isdigit():
             walls = int(wm.group(1))
         # "... 32 Count 4 Wall Beginner Music: Track - Artist"
         mm = re.search(r"Music:\s*(.+)$", info_text, re.I)
