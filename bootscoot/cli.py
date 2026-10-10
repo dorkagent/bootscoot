@@ -40,13 +40,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--proxy", default=None,
         help="Proxy server URL, e.g. http://user:pass@host:3128",
     )
+    p.add_argument(
+        "--base-url", default=None,
+        help="Target site base URL (default: the site the parser was built for)",
+    )
     return p
 
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        with CopperKnobClient(proxy=args.proxy) as client:
+        with CopperKnobClient(proxy=args.proxy, base_url=args.base_url) as client:
             results = client.search(
                 args.query,
                 level=args.level,

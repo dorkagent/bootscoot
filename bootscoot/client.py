@@ -54,12 +54,14 @@ class CopperKnobClient:
     def __init__(
         self,
         *,
+        base_url: Optional[str] = None,
         user_agent: str = DEFAULT_UA,
         timeout: int = 30,
         proxy: Optional[str] = None,
         verify_tls: bool = True,
         delay_between_requests: float = 1.0,
     ) -> None:
+        self.base_url = (base_url or BASE_URL).rstrip("/")
         self.timeout = timeout
         self.delay_between_requests = delay_between_requests
         self._session = requests.Session()
@@ -111,7 +113,7 @@ class CopperKnobClient:
         }
         if recnum:
             params["recnum"] = recnum
-        return f"{BASE_URL}{SEARCH_PATH}?{urlencode(params)}"
+        return f"{self.base_url}{SEARCH_PATH}?{urlencode(params)}"
 
     def search(
         self,
@@ -141,13 +143,13 @@ class CopperKnobClient:
         )
         for _ in range(max_pages):
             html = self._get(url)
-            batch = parse_search_results(html, BASE_URL)
+            batch = parse_search_results(html, self.base_url)
             if not batch:
                 break
             results.extend(batch)
             if max_results and len(results) >= max_results:
                 break
-            next_url = find_next_page_url(html, BASE_URL)
+            next_url = find_next_page_url(html, self.base_url)
             if not next_url:
                 break
             url = next_url
@@ -160,5 +162,6 @@ class CopperKnobClient:
 
 def search(query: str, **kwargs) -> List[Dict]:
     """One-shot convenience wrapper: search and return results."""
-    with CopperKnobClient() as client:
+    base_url = kwargs.pop("base_url", None)
+    with CopperKnobClient(base_url=base_url) as client:
         return client.search(query, **kwargs)

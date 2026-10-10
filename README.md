@@ -1,10 +1,8 @@
 # bootscoot
 
-A Python module for using [copperknob.co.uk](https://copperknob.co.uk)'s
-line-dance stepsheet search programmatically — from your own scripts or
-straight from the command line. No browser, no Selenium/Playwright: the
-`www` host serves plain HTTP requests fine (the bare apex domain is the
-one behind the Cloudflare challenge, so the client uses `www`).
+Line-dance stepsheet search as a Python module and CLI. Give it a query,
+get structured results — title, choreographer, date, count, walls, level,
+music, URL. Plain HTTP, no browser needed.
 
 ```python
 from bootscoot import search
@@ -26,16 +24,36 @@ pip install -e .
 
 Needs only `requests` + `beautifulsoup4`.
 
+## Target site
+
+The site to search is a variable, not hardcoded:
+
+```python
+from bootscoot import CopperKnobClient
+
+with CopperKnobClient(base_url="https://www.example-stepsheets.com") as client:
+    results = client.search("Cowboy Charleston", max_results=10)
+```
+
+or from the CLI:
+
+```bash
+bootscoot "Bailando" --base-url https://www.example-stepsheets.com
+```
+
+Omit `base_url` to use the default — the site the parser was built and
+tested against (see `BASE_URL` in `bootscoot/client.py`).
+
 ## API
 
 ### `search(query, **kwargs)` → `list[dict]`
 
 One-shot convenience function. Opens a client, searches, closes it.
 
-### `CopperKnobClient(...)`
+### `CopperKnobClient(base_url=None, ...)`
 
 Long-lived client (context manager, keeps one HTTP session). `search()`
-accepts the site's own search-form filters:
+accepts the search-form filters:
 
 | kwarg | default | meaning |
 |---|---|---|
@@ -54,7 +72,7 @@ Each result dict:
 {
     "id": "22B54H3",
     "title": "EZ Rhinestone Cowboy",
-    "url": "https://www.copperknob.co.uk/stepsheets/22B54H3/ez-rhinestone-cowboy",
+    "url": "https://<domain>/stepsheets/22B54H3/ez-rhinestone-cowboy",
     "choreographer": "Pat Wilson (NZ)",
     "date": "October 2026",
     "count": 32,
@@ -77,14 +95,15 @@ bootscoot "Waltz" --wall 4 --beat-from 80 --beat-to 100
 ```
 
 Options: `--level`, `--wall`, `--lang`, `--beat-from`, `--beat-to`,
-`--order`, `--max-results`, `--format text|json`, `--proxy`.
+`--order`, `--max-results`, `--format text|json`, `--proxy`,
+`--base-url`.
 
 ## Notes & limits
 
-* If Cloudflare ever starts challenging the `www` host too, fetches raise
+* If the target ever starts serving bot challenges, fetches raise
   `CloudflareChallengeError` instead of returning garbage — the client
   won't silently hand you a challenge page as results.
-* The parser keys off the real result markup (`div.listitem`), so it
+* The parser keys off the result markup (`div.listitem`), so it
   tolerates minor site redesigns, but a big markup change may need a
   parser tweak.
 * Behind a proxy: pass `proxy="http://user:pass@host:3128"` (or `--proxy`
