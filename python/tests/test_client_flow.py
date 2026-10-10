@@ -1,7 +1,8 @@
 """Client flow tests with a stubbed HTTP layer (no network needed)."""
 
+import os
 import sys
-sys.path.insert(0, "/home/hatch/workspace/copperknob-search")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import bootscoot.client as C
 

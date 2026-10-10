@@ -1,0 +1,1 @@
+{"bin":{"bootscoot":"./bin/bootscoot.js"},"description":"Line-dance stepsheet search - zero-dependency Node module + CLI","engines":{"node":">=18"},"license":"MIT","main":"bootscoot.js","name":"bootscoot","version":"0.1.0"}

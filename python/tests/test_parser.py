@@ -1,7 +1,8 @@
 """Parser tests against the real result markup (captured 2026-10-10)."""
 
+import os
 import sys
-sys.path.insert(0, "/home/hatch/workspace/copperknob-search")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from bootscoot.parser import parse_search_results, find_next_page_url
 
