@@ -9,3 +9,6 @@ the target site is a variable in all three — not hardcoded.
 - **[python/](python/)** — module + CLI. `from bootscoot import search`
 - **[powershell/](powershell/)** — `BootScoot.psm1`. `Search-Stepsheets` returns objects you pipe anywhere
 - **[javascript/](javascript/)** — zero-dependency Node module + CLI
+- **[server/](server/)** — zero-dependency REST API + demo page.
+  `GET /api/search?q=Bailando` returns JSON. Dockerfile + Render
+  blueprint included.
