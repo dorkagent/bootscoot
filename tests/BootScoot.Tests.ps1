@@ -1,6 +1,6 @@
 # Invoke-Pester ./tests   (Pester 5+)
 BeforeAll {
-    Import-Module "$PSScriptRoot/../BootScoot.psm1" -Force
+    . "$PSScriptRoot/../BootScoot.ps1"   # dot-source: no query given, so only the functions load
     $script:Fixture = Get-Content "$PSScriptRoot/fixture.html" -Raw
 }
 
@@ -49,10 +49,8 @@ Describe "ConvertFrom-StepsheetHtml" {
 
 Describe "Search-Stepsheets (mocked network)" {
     It "throws a clear error on a 200 challenge page" {
-        InModuleScope BootScoot {
-            Mock Invoke-WebRequest { [pscustomobject]@{ Content = "<title>Just a moment...</title>challenges.cloudflare.com" } }
-            { Search-Stepsheets "x" -DelaySeconds 0 } | Should -Throw "*bot challenge*"
-        }
+        Mock Invoke-WebRequest { [pscustomobject]@{ Content = "<title>Just a moment...</title>challenges.cloudflare.com" } }
+        { Search-Stepsheets "x" -DelaySeconds 0 } | Should -Throw "*bot challenge*"
     }
 
     It "turns a network failure into a BootScoot error" {
@@ -60,21 +58,15 @@ Describe "Search-Stepsheets (mocked network)" {
     }
 
     It "dedupes and stops when the site repeats the same page" {
-        InModuleScope BootScoot -Parameters @{ F = $Fixture } {
-            param($F)
-            Mock Invoke-WebRequest { [pscustomobject]@{ Content = $F } }
-            $r = @(Search-Stepsheets "Cowboy" -MaxResults 50 -DelaySeconds 0)
-            $r.Count | Should -Be 3
-            Should -Invoke Invoke-WebRequest -Times 2 -Exactly
-        }
+        Mock Invoke-WebRequest { [pscustomobject]@{ Content = $Fixture } }
+        $r = @(Search-Stepsheets "Cowboy" -MaxResults 50 -DelaySeconds 0)
+        $r.Count | Should -Be 3
+        Should -Invoke Invoke-WebRequest -Times 2 -Exactly
     }
 
     It "caps at MaxResults with a single request" {
-        InModuleScope BootScoot -Parameters @{ F = $Fixture } {
-            param($F)
-            Mock Invoke-WebRequest { [pscustomobject]@{ Content = $F } }
-            @(Search-Stepsheets "Cowboy" -MaxResults 2 -DelaySeconds 0).Count | Should -Be 2
-            Should -Invoke Invoke-WebRequest -Times 1 -Exactly
-        }
+        Mock Invoke-WebRequest { [pscustomobject]@{ Content = $Fixture } }
+        @(Search-Stepsheets "Cowboy" -MaxResults 2 -DelaySeconds 0).Count | Should -Be 2
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly
     }
 }

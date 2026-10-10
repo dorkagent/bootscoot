@@ -1,10 +1,46 @@
 # bootscoot
 
-Line-dance stepsheet search — Python and PowerShell. Each one does the
-same job: give it a query, get structured results (title, choreographer,
-date, count, walls, level, music, URL) your script can take over from
-there. Plain HTTP, no browser needed, and the target site is a variable
-in both — not hardcoded.
+Line-dance stepsheet search in two single files — no install step, just
+download and run. Give it a query, get structured results (title,
+choreographer, date, count, walls, level, music, URL) your script can
+take over from there. Plain HTTP, no browser needed, and the target site
+is a variable in both — not hardcoded.
 
-- **[python/](python/)** — module + CLI. `from bootscoot import search`
-- **[powershell/](powershell/)** — `BootScoot.psm1`. `Search-Stepsheets` returns objects you pipe anywhere
+- **`bootscoot.py`** — Python. Needs `requests` + `beautifulsoup4`.
+  ```bash
+  python bootscoot.py "Bailando" --max-results 10 --format json
+  ```
+  Or import it:
+  ```python
+  from bootscoot import search
+  for dance in search("Bailando", max_results=5):
+      print(dance["title"], dance["url"])
+  ```
+- **`BootScoot.ps1`** — PowerShell. No dependencies.
+  ```powershell
+  .\BootScoot.ps1 "Bailando" -MaxResults 10
+  .\BootScoot.ps1 "Bailando" -AsJson | Out-File results.json
+  # or dot-source it and use the functions:
+  . .\BootScoot.ps1
+  Search-Stepsheets "Cowboy" | Where-Object { $_.Level -eq "Beginner" }
+  ```
+
+## Tests
+
+```bash
+python tests/test_parser.py && python tests/test_client_flow.py
+```
+
+```powershell
+Invoke-Pester ./tests   # Pester 5+
+```
+
+## Notes
+
+- `level` comes back in the site's own language, so French sheets report
+  values like `Débutant` instead of `Beginner` — filter on it accordingly.
+- The `base_url` / `-BaseUrl` variable sets the network target; the
+  result parser itself matches the site's markup (`div.listitem`), so
+  pointing it elsewhere only works for sites serving the same layout.
+- Requests are spaced ~1s apart to stay polite; don't hammer the site
+  in a tight loop.

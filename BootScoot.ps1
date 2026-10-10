@@ -1,7 +1,27 @@
-# BootScoot - line-dance stepsheet search.
-# Import-Module ./BootScoot.psm1 ; Search-Stepsheets "Bailando" | ConvertTo-Json
+# BootScoot - line-dance stepsheet search in a single file.
+#
+# Run it directly:
+#   .\BootScoot.ps1 "Bailando" -MaxResults 10
+#   .\BootScoot.ps1 "Bailando" -AsJson | Out-File results.json
+#
+# Or dot-source it to use the functions in your own script:
+#   . .\BootScoot.ps1
+#   Search-Stepsheets "Cowboy" | Where-Object { $_.Level -eq "Beginner" }
 
-$script:DefaultBaseUrl = "https://www.copperknob.co.uk"
+param(
+    [Parameter(Position = 0)][string]$Query = "",
+    [string]$BaseUrl = "https://www.copperknob.co.uk",
+    [string]$Level = "",
+    [string]$Wall = "",
+    [string]$Lang = "",
+    [string]$Order = "Date",
+    [ValidateRange(1, 10000)][int]$MaxResults = 20,
+    [ValidateRange(1, 1000)][int]$MaxPages = 10,
+    [ValidateRange(0, 60)][int]$DelaySeconds = 1,
+    [switch]$AsJson
+)
+
+$script:DefaultBaseUrl = $BaseUrl
 $script:UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 $script:ChallengeMarkers = @("challenges.cloudflare.com", "just a moment", "verify you are human")
 
@@ -164,4 +184,7 @@ function Search-Stepsheets {
     return $results.ToArray()
 }
 
-Export-ModuleMember -Function Search-Stepsheets, ConvertFrom-StepsheetHtml
+# Run a search when invoked directly with a query; dot-source to use the functions.
+if ($Query) {
+    Search-Stepsheets @PSBoundParameters
+}

@@ -4,7 +4,7 @@ import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from bootscoot.parser import parse_search_results, find_next_page_url
+from bootscoot import parse_search_results, find_next_page_url
 
 FIXTURE = """
 <html><body>
