@@ -45,7 +45,9 @@ Describe "ConvertFrom-StepsheetHtml" {
     It "returns nothing for an empty page" {
         @(ConvertFrom-StepsheetHtml -Html "<html>no results</html>").Count | Should -Be 0
     }
+}
 
+Describe "Search-Stepsheets (mocked network)" {
     It "throws a clear error on a 200 challenge page" {
         InModuleScope BootScoot {
             Mock Invoke-WebRequest { [pscustomobject]@{ Content = "<title>Just a moment...</title>challenges.cloudflare.com" } }
@@ -56,9 +58,7 @@ Describe "ConvertFrom-StepsheetHtml" {
     It "turns a network failure into a BootScoot error" {
         { Search-Stepsheets "x" -BaseUrl "http://127.0.0.1:1" -DelaySeconds 0 } | Should -Throw "BootScoot:*"
     }
-}
 
-Describe "Search-Stepsheets (mocked network)" {
     It "dedupes and stops when the site repeats the same page" {
         InModuleScope BootScoot -Parameters @{ F = $Fixture } {
             param($F)
