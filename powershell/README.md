@@ -18,3 +18,16 @@ parser was built for), `-Level`, `-Wall`, `-Lang`, `-Order` (default
 
 Note: `Level` comes back in the site's own language (e.g. `Débutant` on
 French sheets).
+
+`ConvertFrom-StepsheetHtml -Html $page` is also exported: it parses a saved
+results page with no network, handy for your own tests.
+
+Errors: a bot-challenge page, HTTP 429, or a network failure throws a
+`BootScoot: ...` error instead of returning empty or garbage results.
+
+## Tests
+
+```powershell
+Install-Module Pester -MinimumVersion 5.5 -Scope CurrentUser   # once
+Invoke-Pester ./tests
+```
