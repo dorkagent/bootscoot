@@ -25,16 +25,6 @@ is a variable in both — not hardcoded.
   Search-Stepsheets "Cowboy" | Where-Object { $_.Level -eq "Beginner" }
   ```
 
-## Tests
-
-```bash
-python tests/test_parser.py && python tests/test_client_flow.py
-```
-
-```powershell
-Invoke-Pester ./tests   # Pester 5+
-```
-
 ## Notes
 
 - `level` comes back in the site's own language, so French sheets report
