@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bootscoot"
+version = "0.1.0"
+description = "Line-dance stepsheet search for copperknob.co.uk - Python module + CLI, no browser needed"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "dorkagent" }]
+dependencies = [
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+bootscoot = "bootscoot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bootscoot*"]
